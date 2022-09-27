@@ -15,7 +15,7 @@ Expectations:
 
 Problems I ran into so far:
     - Launching Microsoft feedback hub seems impossible
-    -
+    - Scaling using zoom is different from changing the font, yet it still requires a font change to scale
 """
 
 from tkinter import *
@@ -88,8 +88,6 @@ class Edit:
 class Format:
     def __init__(self, menu):
         self.menu = menu
-        # Format cascade
-        # SET A BOOLEAN VAR THAT WILL CHANGE IF THE CHECKBUTTON CHANGES ONVALUE AND OFFVALUE PS. USE .get alongside the varaible
         self.check = BooleanVar()
 
         formatmenu = Menu(self.menu, tearoff=0)
@@ -105,30 +103,57 @@ class Format:
             notepad.config(wrap=NONE)
 
 
-# Completed
+# Almost complete
 class View:
     def __init__(self, menu):
         self.menu = menu
-        self.zoom_increment = 0  # ---------------------------> Save value
+        self.zoom_size = 0
+
         # View cascade
         viewmenu = Menu(self.menu, tearoff=0)
         # Zoom cascade existing within view cascade
         zoommenu = Menu(viewmenu, tearoff=0)
-        zoommenu.add_command(label="Zoom in", command=self.zoom_in)
-        zoommenu.add_command(label="Zoom out", command=self.zoom_out)
-        zoommenu.add_command(label="Restore default zoom", command=lambda: font.configure(size=14))
-
+        zoommenu.add_command(label="Zoom in                                    Ctrl+Right", command=self.zoom_in)
+        zoommenu.add_command(label="Zoom out                                    Ctrl+Left", command=self.zoom_out)
+        zoommenu.add_command(label="Restore default zoom              Ctrl+Down",
+                             command=self.zoom_defualt)
         viewmenu.add_cascade(label="Zoom", menu=zoommenu)
         viewmenu.add_command(label="Status Bar", command=donothing)
         self.menu.add_cascade(label="View", menu=viewmenu)
 
+        # Scale is set, but it is never packed. The idea is to use the scale item to
+        self.zoom_scale = Scale(gui, from_=1, to=72)
+        self.zoom_scale.set(14)
+        gui.bind('<Control-Left>', self.zoom_out_bind)
+        gui.bind('<Control-Right>', self.zoom_in_bind)
+        gui.bind('<Control-Down>', self.zoom_default_bind)
+
+    @staticmethod
+    def zoom(size):
+        font.configure(size=size)
+
+    def zoom_out_bind(self, event):
+        if self.zoom_scale.get() != self.zoom_scale.cget("from"):  # The min value is called
+            self.zoom_scale.set(self.zoom_scale.get() - 1)
+            self.zoom(self.zoom_scale.get())
+
+    def zoom_in_bind(self, event):
+        if self.zoom_scale.get() != self.zoom_scale.cget("to"):  # The max value is called
+            self.zoom_scale.set(self.zoom_scale.get() + 1)
+            self.zoom(self.zoom_scale.get())
+
     def zoom_out(self):
-        self.zoom_increment -= 1
-        font.configure(size=14 + self.zoom_increment)
+        self.zoom_out_bind(self)
 
     def zoom_in(self):
-        self.zoom_increment += 1
-        font.configure(size=14 + self.zoom_increment)
+        self.zoom_in_bind(self)
+
+    def zoom_default_bind(self, event):
+        self.zoom_scale.set(14)
+        self.zoom(self.zoom_scale.get())
+
+    def zoom_defualt(self):
+        self.zoom_default_bind(self)
 
 
 # Completed
@@ -207,4 +232,7 @@ if __name__ == "__main__":
     Help(menubar)
 
     gui.config(menu=menubar)
+
+    # ========================== Experimental code =============================================
+
     gui.mainloop()
