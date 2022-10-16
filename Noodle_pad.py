@@ -13,20 +13,19 @@ Expectations:
     - Learn how to implement a menu bar
     - Learn how to implement binds using keyboard
 
-Problems I ran into so far:
+Problems I ran into:
     - Launching Microsoft feedback hub seems impossible
     - Scaling using zoom is different from changing the font, yet it still requires a font change to scale
+    - Certain binds do not work (Example: KP_Add, KP_0, KP_Subtract and etc.)
+    - Page Setup menu command removed since it seems pointless
 """
 
 from tkinter import *
 from tkinter import ttk
 from tkinter.font import Font
-import tkinter.messagebox as msgbox
 import sys
 import webbrowser
 from datetime import datetime
-
-import subprocess
 
 
 def donothing():
@@ -44,7 +43,7 @@ class File:
         filemenu.add_command(label="Open...", command=donothing)
         filemenu.add_command(label="Save as...", command=donothing)
         filemenu.add_separator()  # Separates the line within a menu cascade
-        filemenu.add_command(label="Page setup", command=donothing)
+        filemenu.add_command(label="Page Setup", command=donothing)
         filemenu.add_command(label="Print...", command=donothing)
         filemenu.add_separator()
         filemenu.add_command(label="Exit", command=self.exit, background="Red")
@@ -61,7 +60,7 @@ class Edit:
         self.menu = menu
         # Edit cascade
         editmenu = Menu(self.menu, tearoff=0)
-        editmenu.add_command(label="Undo", command=donothing)
+        editmenu.add_command(label="Undo", command=notepad.edit_undo, state=DISABLED)
         editmenu.add_separator()
         editmenu.add_command(label="Cut", command=donothing)
         editmenu.add_command(label="Copy", command=donothing)
@@ -93,7 +92,7 @@ class Format:
         formatmenu = Menu(self.menu, tearoff=0)
         formatmenu.add_checkbutton(label="Word wrap", onvalue=1, offvalue=0, variable=self.check,
                                    command=self.word_wrap)
-        formatmenu.add_command(label="Font...", command=donothing)
+        formatmenu.add_command(label="Font...", command=self.font_change)
         self.menu.add_cascade(label="Format", menu=formatmenu)
 
     def word_wrap(self):
@@ -102,12 +101,54 @@ class Format:
         else:
             notepad.config(wrap=NONE)
 
+    @staticmethod
+    def font_change():
+
+        font_window = Toplevel(gui)
+        font_window.geometry("420x440")
+        font_window.resizable(False, False)
+        font_window.grab_set()  # Locks window parent window and all its widgets
+
+        # Labels
+        Label(font_window, text="Font:").grid(row=1, column=1, pady=(20, 0), padx=(20, 10), sticky="W")
+        Label(font_window, text="Font Style:").grid(row=1, column=2, pady=(20, 0), padx=14, sticky="W")
+        Label(font_window, text="Size:").grid(row=1, column=3, pady=(20, 0), padx=14, sticky="W")
+
+        # Entries
+        entry_font = Entry(font_window, width=28)
+        entry_font.grid(row=2, column=1, pady=(0, 1), padx=(20, 0), sticky="W")
+        entry_font_style = Entry(font_window)
+        entry_font_style.grid(row=2, column=2, pady=(0, 1), padx=(14, 0), sticky="W")
+        entry_font_size = Entry(font_window, width=8)
+        entry_font_size.grid(row=2, column=3, pady=(0, 1), padx=(14, 0), sticky="W")
+
+        # Text boxes
+        txt_font = Text(font_window, width=21, height=10)
+        txt_font.grid(row=3, column=1, padx=(20, 0), sticky="NW")
+        txt_font_style = Text(font_window, width=15, height=10)
+        txt_font_style.grid(row=3, column=2, padx=(14, 0), sticky="NW")
+        txt_font_size = Text(font_window, width=6, height=10)
+        txt_font_size.grid(row=3, column=3, padx=(14, 0), sticky="NW")
+
+        # Labelframe
+        frame_sample = LabelFrame(font_window, text="Sample", relief=GROOVE)
+        frame_sample.grid(row=4, column=2, columnspan=2, pady=25, sticky="W")
+        lbl_sample = Label(frame_sample, text="Shit", width=28, height=6)
+        lbl_sample.pack()
+
+        font_window.mainloop()
+
 
 # Almost complete
 class View:
     def __init__(self, menu):
+
         self.menu = menu
         self.zoom_size = 0
+        self.status = BooleanVar()
+
+        if not self.status.get():
+            status_bar.forget()
 
         # View cascade
         viewmenu = Menu(self.menu, tearoff=0)
@@ -118,12 +159,10 @@ class View:
         zoommenu.add_command(label="Restore default zoom              Ctrl+Down",
                              command=self.zoom_defualt)
         viewmenu.add_cascade(label="Zoom", menu=zoommenu)
-        viewmenu.add_command(label="Status Bar", command=donothing)
+        viewmenu.add_checkbutton(label="Status Bar", onvalue=1, offvalue=0, variable=self.status,
+                                 command=self.sbar_show)
         self.menu.add_cascade(label="View", menu=viewmenu)
 
-        # Scale is set, but it is never packed. The idea is to use the scale item to
-        self.zoom_scale = Scale(gui, from_=1, to=72)
-        self.zoom_scale.set(14)
         gui.bind('<Control-Left>', self.zoom_out_bind)
         gui.bind('<Control-Right>', self.zoom_in_bind)
         gui.bind('<Control-Down>', self.zoom_default_bind)
@@ -133,14 +172,14 @@ class View:
         font.configure(size=size)
 
     def zoom_out_bind(self, event):
-        if self.zoom_scale.get() != self.zoom_scale.cget("from"):  # The min value is called
-            self.zoom_scale.set(self.zoom_scale.get() - 1)
-            self.zoom(self.zoom_scale.get())
+        if zoom_scale.get() != zoom_scale.cget("from"):  # The min value is called
+            zoom_scale.set(zoom_scale.get() - 1)
+            self.zoom(zoom_scale.get())
 
     def zoom_in_bind(self, event):
-        if self.zoom_scale.get() != self.zoom_scale.cget("to"):  # The max value is called
-            self.zoom_scale.set(self.zoom_scale.get() + 1)
-            self.zoom(self.zoom_scale.get())
+        if zoom_scale.get() != zoom_scale.cget("to"):  # The max value is called
+            zoom_scale.set(zoom_scale.get() + 1)
+            self.zoom(zoom_scale.get())
 
     def zoom_out(self):
         self.zoom_out_bind(self)
@@ -149,11 +188,17 @@ class View:
         self.zoom_in_bind(self)
 
     def zoom_default_bind(self, event):
-        self.zoom_scale.set(14)
-        self.zoom(self.zoom_scale.get())
+        zoom_scale.set(14)
+        self.zoom(zoom_scale.get())
 
     def zoom_defualt(self):
         self.zoom_default_bind(self)
+
+    def sbar_show(self):
+        if self.status.get():
+            status_bar.pack(fill=X, side=BOTTOM, before=scrolly)
+        else:
+            status_bar.forget()
 
 
 # Completed
@@ -168,14 +213,17 @@ class Help:
         helpmenu.add_command(label="About NoodlePad", command=self.about_noodlepad)
         self.menu.add_cascade(label="Help", menu=helpmenu)
 
-    def view_help(self):
+    @staticmethod
+    def view_help():
         webbrowser.open("https://www.youtube.com/watch?v=dQw4w9WgXcQ")
 
-    def send_feedback(self):
+    @staticmethod
+    def send_feedback():
         webbrowser.open("https://aka.ms")  # Consider creating a run command to launch microsoft feedback
         # For now, it takes you to the site that feedback uses
 
-    def about_noodlepad(self):
+    @staticmethod
+    def about_noodlepad():
         about_page = Toplevel(gui)
         about_page.geometry("460x380")
         about_page.title("About NoodlePad")
@@ -199,6 +247,13 @@ class Help:
         Label(frame, text="Comin' at you with extreme mana").pack()
 
 
+# --------------------- Classless methods ---------------------
+def sbar_details(ev=None):
+    row, col = notepad.index('insert').split('.')
+    zoom_percent = int(100 / 13 * zoom_scale.get()-7)
+    status_bar['text'] = f'             |  Ln {row}, Col {col}  |  Zoom {zoom_percent}%  |'
+
+
 if __name__ == "__main__":
     # GUI creation
     gui = Tk()
@@ -206,6 +261,13 @@ if __name__ == "__main__":
     gui.geometry("700x500")
     menubar = Menu(gui)  # Set a menubar at the top of the gui
 
+    # Create status bar
+    status_bar = Label(gui)
+    status_bar.pack(fill=BOTH, side=BOTTOM)
+
+    # Create scale
+    zoom_scale = Scale(gui, from_=1, to=72)
+    zoom_scale.set(14)
     # Create font
     font = Font(family="Consolas", size=14)
 
@@ -220,6 +282,12 @@ if __name__ == "__main__":
                    xscrollcommand=scrollx.set)
     notepad.pack(expand=True, fill=BOTH)
 
+    # Event creation for line and col fetch
+    notepad.event_add('<<REACT>>', *('<Motion>', '<ButtonRelease>', '<KeyPress>', '<KeyRelease>'))
+    x = notepad.bind('<<REACT>>', sbar_details)
+    sbar_details()
+    notepad.focus()
+
     # Config scrollbars
     scrolly.config(command=notepad.yview)
     scrollx.config(command=notepad.xview)
@@ -233,6 +301,7 @@ if __name__ == "__main__":
 
     gui.config(menu=menubar)
 
+    gui.mainloop()
     # ========================== Experimental code =============================================
 
-    gui.mainloop()
+
