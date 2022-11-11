@@ -22,10 +22,13 @@ Problems I ran into:
 
 from tkinter import *
 from tkinter import ttk
-from tkinter.font import Font
+from tkinter import font
+import tkinter as tkinter
 import sys
 import webbrowser
 from datetime import datetime
+from tkinter import filedialog
+from tkinter import messagebox
 
 
 def donothing():
@@ -37,18 +40,69 @@ class File:
         self.menu = menu
         # File cascade
         filemenu = Menu(self.menu, tearoff=0)  # Create an item on the menu
-        filemenu.add_command(label="New", command=donothing)
+        filemenu.add_command(label="New", command=self.new)
         filemenu.add_command(label="New Window", command=donothing)
+        filemenu.add_command(label="Open...", command=self.open_txt)
         filemenu.add_command(label="Save", command=donothing)
-        filemenu.add_command(label="Open...", command=donothing)
-        filemenu.add_command(label="Save as...", command=donothing)
+        filemenu.add_command(label="Save as...", command=self.save_as)
         filemenu.add_separator()  # Separates the line within a menu cascade
         filemenu.add_command(label="Page Setup", command=donothing)
         filemenu.add_command(label="Print...", command=donothing)
         filemenu.add_separator()
-        filemenu.add_command(label="Exit", command=self.exit, background="Red")
+        filemenu.add_command(label="Exit", command=self.exit)
         self.menu.add_cascade(label="File",
                               menu=filemenu)  # Adds the menu item and all the commands underneath into a cascade
+
+    def new(self):
+        global text_changed, file_name, file
+        if text_changed == False:
+            text = notepad.get('1.0', END)
+            notepad.delete('1.0', END)
+            file_name = 'Untitled'
+            gui.title(f'Noodlepad - {file_name}')
+        else:
+            save_file = messagebox.askyesnocancel(f'Noodlepad - {file_name}',
+                                                  f'Do you want to save changes to {file_name}?')
+
+            if save_file and file:
+                self.save()
+
+            elif save_file and not file:
+                self.save_as()
+
+            elif not save_file:
+                notepad.delete('1.0',END)
+                file_name = 'Untitled'
+                gui.title(f'Noodlepad - {file_name}')
+                text_changed = False
+            else:
+                pass
+
+    def open_txt(self):
+        global file
+        file = filedialog.askopenfile(mode='r',
+                                      initialdir='C:/Users/Gamer/Documents',
+                                      title='Open text file',
+                                      filetypes=(('Text file', '*.txt'),))
+        text = file.read()
+        notepad.delete('1.0', END)
+        notepad.insert('1.0', text)
+        file.close()
+
+    def save(self):
+        print('na')
+
+    def save_as(self):
+        global file
+        file = filedialog.asksaveasfile(mode='w',
+                                        initialfile='Untitled.txt',
+                                        defaultextension='/txt',
+                                        title='Save as text file',
+                                        filetypes=(('Text file', '*.txt'),))
+
+        if file is not None:
+            file.write(notepad.get('1.0', END))
+            file.close()
 
     def exit(self):
         msg = "Have a nice day ;)"
@@ -84,6 +138,7 @@ class Edit:
         notepad.insert("1.0", time + " " + date + "\n")
 
 
+# Font kinda stinks
 class Format:
     def __init__(self, menu):
         self.menu = menu
@@ -104,6 +159,9 @@ class Format:
     @staticmethod
     def font_change():
 
+        def font_chooser(e):
+            lbl_sample.config(font=list_font.get(list_font.curselection()))
+
         font_window = Toplevel(gui)
         font_window.geometry("420x440")
         font_window.resizable(False, False)
@@ -122,13 +180,13 @@ class Format:
         entry_font_size = Entry(font_window, width=8)
         entry_font_size.grid(row=2, column=3, pady=(0, 1), padx=(14, 0), sticky="W")
 
-        # Text boxes
-        txt_font = Text(font_window, width=21, height=10)
-        txt_font.grid(row=3, column=1, padx=(20, 0), sticky="NW")
-        txt_font_style = Text(font_window, width=15, height=10)
-        txt_font_style.grid(row=3, column=2, padx=(14, 0), sticky="NW")
-        txt_font_size = Text(font_window, width=6, height=10)
-        txt_font_size.grid(row=3, column=3, padx=(14, 0), sticky="NW")
+        # List boxes
+        list_font = Listbox(font_window, width=28, height=10)
+        list_font.grid(row=3, column=1, padx=(20, 0), sticky="NW")
+        list_font_style = Listbox(font_window, width=20, height=10)
+        list_font_style.grid(row=3, column=2, padx=(14, 0), sticky="NW")
+        list_font_size = Listbox(font_window, width=8, height=10)
+        list_font_size.grid(row=3, column=3, padx=(14, 0), sticky="NW")
 
         # Labelframe
         frame_sample = LabelFrame(font_window, text="Sample", relief=GROOVE)
@@ -136,10 +194,17 @@ class Format:
         lbl_sample = Label(frame_sample, text="Shit", width=28, height=6)
         lbl_sample.pack()
 
+        # Populate font list
+        for f in tkinter.font.families():
+            list_font.insert('end', f)
+
+        # Binds for listboxes
+        list_font.bind('<ButtonRelease-1>', font_chooser)
+
         font_window.mainloop()
 
 
-# Almost complete
+# Completed
 class View:
     def __init__(self, menu):
 
@@ -250,14 +315,20 @@ class Help:
 # --------------------- Classless methods ---------------------
 def sbar_details(ev=None):
     row, col = notepad.index('insert').split('.')
-    zoom_percent = int(100 / 13 * zoom_scale.get()-7)
+    zoom_percent = int(100 / 13 * zoom_scale.get() - 7)
     status_bar['text'] = f'             |  Ln {row}, Col {col}  |  Zoom {zoom_percent}%  |'
 
 
 if __name__ == "__main__":
+
+    # Variable declaration
+    file_name = ''
+    file = None
+    text_changed = False
+
     # GUI creation
     gui = Tk()
-    gui.title("NoodlePad")
+    gui.title(f"NoodlePad - {file_name}")
     gui.geometry("700x500")
     menubar = Menu(gui)  # Set a menubar at the top of the gui
 
@@ -269,7 +340,7 @@ if __name__ == "__main__":
     zoom_scale = Scale(gui, from_=1, to=72)
     zoom_scale.set(14)
     # Create font
-    font = Font(family="Consolas", size=14)
+    font = font.Font(family="Consolas", size=14)
 
     # Scrollbar creation
     scrolly = Scrollbar(gui)
@@ -281,6 +352,8 @@ if __name__ == "__main__":
     notepad = Text(gui, relief=SUNKEN, font=font, wrap=NONE, undo=True, yscrollcommand=scrolly.set,
                    xscrollcommand=scrollx.set)
     notepad.pack(expand=True, fill=BOTH)
+
+    text_original = notepad.get('1.0', END)
 
     # Event creation for line and col fetch
     notepad.event_add('<<REACT>>', *('<Motion>', '<ButtonRelease>', '<KeyPress>', '<KeyRelease>'))
@@ -302,6 +375,5 @@ if __name__ == "__main__":
     gui.config(menu=menubar)
 
     gui.mainloop()
+
     # ========================== Experimental code =============================================
-
-
